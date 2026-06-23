@@ -1,7 +1,6 @@
 # DANIEL JOSHUA - Software Engineering Portfolio - 
 
-Welcome! This is where every project I work on during the Uplift Bootcamp
-and beyond.
+Welcome! This is where every project I work on during the Uplift Bootcamp.
 
 ## ABOUT ME:
 
