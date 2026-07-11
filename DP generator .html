@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instagram DP Generator</title>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafafa;
+        color: #262626;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+
+   .container {
+        max-width: 500px;
+        width: 100%;
+        background: white;
+        border: 1px solid #dbdbdb;
+        border-radius: 12px;
+        padding: 24px;
+    }
+
+    h1 {
+        font-size: 24px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+   .form-group {
+        margin-bottom: 16px;
+    }
+
+    label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 6px;
+        font-size: 14px;
+    }
+
+    input[type="text"],
+    input[type="file"],
+    textarea,
+    select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #dbdbdb;
+        border-radius: 8px;
+        font-size: 14px;
+        background: #fafafa;
+    }
+
+    textarea {
+        resize: vertical;
+        min-height: 60px;
+    }
+
+   .controls-row {
+        display: flex;
+        gap: 10px;
+    }
+
+   .controls-row.form-group {
+        flex: 1;
+    }
+
+    input[type="color"] {
+        width: 100%;
+        height: 40px;
+        border: 1px solid #dbdbdb;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    button {
+        width: 100%;
+        padding: 12px;
+        background: #0095f6;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        margin-top: 8px;
+    }
+
+    button:hover {
+        background: #1877f2;
+    }
+
+    #downloadBtn {
+        background: #00c851;
+        display: none;
+    }
+
+    #downloadBtn:hover {
+        background: #00a843;
+    }
+
+   .preview-container {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+
+    canvas {
+        border: 1px solid #dbdbdb;
+        border-radius: 8px;
+        max-width: 100%;
+        height: auto;
+    }
+
+   .note {
+        font-size: 12px;
+        color: #8e8e8e;
+        text-align: center;
+        margin-top: 10px;
+    }
+</style>
+</head>
+<body>
+    <div class="container">
+        <h1>Instagram DP Generator</h1>
+
+        <div class="form-group">
+            <label for="imageUpload">Upload Photo</label>
+            <input type="file" id="imageUpload" accept="image/*">
+        </div>
+
+        <div class="form-group">
+            <label for="nameInput">Name</label>
+            <input type="text" id="nameInput" placeholder="Enter your name" maxlength="30">
+        </div>
+
+        <div class="form-group">
+            <label for="infoInput">Info / Title</label>
+            <input type="text" id="infoInput" placeholder="e.g. Developer | Designer" maxlength="40">
+        </div>
+
+        <div class="controls-row">
+            <div class="form-group">
+                <label for="bgColor">Background</label>
+                <input type="color" id="bgColor" value="#1a1a1a">
+            </div>
+            <div class="form-group">
+                <label for="textColor">Text Color</label>
+                <input type="color" id="textColor" value="#ffffff">
+            </div>
+            <div class="form-group">
+                <label for="layout">Layout</label>
+                <select id="layout">
+                    <option value="center">Centered</option>
+                    <option value="bottom">Bottom Text</option>
+                    <option value="circle">Circle Photo</option>
+                </select>
+            </div>
+        </div>
+
+        <button id="generateBtn">Generate DP</button>
+        <button id="downloadBtn">Download 1080x1080 PNG</button>
+    </div>
+
+    <div class="preview-container">
+        <canvas id="dpCanvas" width="1080" height="1080" style="width: 400px; height: 400px;"></canvas>
+    </div>
+    <p class="note">Preview is scaled down. Downloaded image will be full 1080x1080 Instagram size.</p>
+
+<script>
+    const canvas = document.getElementById('dpCanvas');
+    const ctx = canvas.getContext('2d');
+    const imageUpload = document.getElementById('imageUpload');
+    const nameInput = document.getElementById('nameInput');
+    const infoInput = document.getElementById('infoInput');
+    const bgColor = document.getElementById('bgColor');
+    const textColor = document.getElementById('textColor');
+    const layout = document.getElementById('layout');
+    const generateBtn = document.getElementById('generateBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    let uploadedImage = null;
+
+    // Load image when user uploads
+    imageUpload.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                uploadedImage = new Image();
+                uploadedImage.onload = function() {
+                    drawDP();
+                };
+                uploadedImage.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Redraw on any input change
+    [nameInput, infoInput, bgColor, textColor, layout].forEach(el => {
+        el.addEventListener('input', drawDP);
+    });
+
+    generateBtn.addEventListener('click', drawDP);
+
+    function drawDP() {
+        const W = 1080;
+        const H = 1080;
+
+        // 1. Background
+        ctx.fillStyle = bgColor.value;
+        ctx.fillRect(0, 0, W, H);
+
+        // 2. Draw image based on layout
+        if (uploadedImage) {
+            const selectedLayout = layout.value;
+
+            if (selectedLayout === 'circle') {
+                // Circle photo in center
+                const radius = 300;
+                const centerX = W / 2;
+                const centerY = H / 2 - 80;
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.clip();
+
+                // Cover fit the image
+                const imgRatio = uploadedImage.width / uploadedImage.height;
+                let drawW = radius * 2;
+                let drawH = radius * 2;
+
+                if (imgRatio > 1) {
+                    drawW = drawH * imgRatio;
+                } else {
+                    drawH = drawW / imgRatio;
+                }
+
+                ctx.drawImage(
+                    uploadedImage,
+                    centerX - drawW / 2,
+                    centerY - drawH / 2,
+                    drawW,
+                    drawH
+                );
+                ctx.restore();
+
+                // Circle border
+                ctx.strokeStyle = textColor.value;
+                ctx.lineWidth = 8;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.stroke();
+
+            } else {
+                // Full cover background image with dark overlay
+                const imgRatio = uploadedImage.width / uploadedImage.height;
+                let drawW = W;
+                let drawH = H;
+
+                if (imgRatio > 1) {
+                    drawH = W / imgRatio;
+                } else {
+                    drawW = H * imgRatio;
+                }
+
+                ctx.drawImage(
+                    uploadedImage,
+                    (W - drawW) / 2,
+                    (H - drawH) / 2,
+                    drawW,
+                    drawH
+                );
+
+                // Dark overlay for text readability
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                ctx.fillRect(0, 0, W, H);
+            }
+        }
+
+        // 3. Draw text
+        ctx.fillStyle = textColor.value;
+        ctx.textAlign = 'center';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowBlur = 20;
+
+        const selectedLayout = layout.value;
+        const name = nameInput.value.trim();
+        const info = infoInput.value.trim();
+
+        if (selectedLayout === 'bottom') {
+            ctx.font = 'bold 70px -apple-system, Arial, sans-serif';
+            ctx.fillText(name, W / 2, H - 180);
+            ctx.font = '40px -apple-system, Arial, sans-serif';
+            ctx.fillText(info, W / 2, H - 110);
+        } else if (selectedLayout === 'circle') {
+            ctx.font = 'bold 70px -apple-system, Arial, sans-serif';
+            ctx.fillText(name, W / 2, H - 180);
+            ctx.font = '40px -apple-system, Arial, sans-serif';
+            ctx.fillText(info, W / 2, H - 110);
+        } else {
+            // Center layout
+            ctx.font = 'bold 80px -apple-system, Arial, sans-serif';
+            ctx.fillText(name, W / 2, H / 2 + 20);
+            ctx.font = '45px -apple-system, Arial, sans-serif';
+            ctx.fillText(info, W / 2, H / 2 + 90);
+        }
+
+        ctx.shadowBlur = 0;
+        downloadBtn.style.display = 'block';
+    }
+
+    // Download functionality
+    downloadBtn.addEventListener('click', function() {
+        const link = document.createElement('a');
+        const name = nameInput.value.trim() || 'instagram-dp';
+        link.download = `${name.replace(/\s+/g, '-').toLowerCase()}-dp.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    });
+
+    // Initial draw
+    drawDP();
+</script>
+</body>
+</html>
